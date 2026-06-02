@@ -22,7 +22,8 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ],
       "config": {
         "googleMaps": {
@@ -46,7 +47,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "O app precisa da localização para registrar o GPS das entregas."
+          "locationAlwaysAndWhenInUsePermission": "O GELOCRIM precisa rastrear sua localização durante as entregas, mesmo com a tela apagada.",
+          "locationAlwaysPermission": "O GELOCRIM precisa rastrear sua localização em segundo plano durante as entregas."
         }
       ],
       [
@@ -54,8 +56,8 @@
         {
           "photosPermission": "O app precisa acessar as fotos para anexar comprovantes."
         }
-      ]
+      ],
+      "expo-task-manager"
     ]
   }
 }
-
