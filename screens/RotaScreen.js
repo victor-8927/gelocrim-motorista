@@ -7,6 +7,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import NetInfo from '@react-native-community/netinfo';
 import { getRouteWithStops, updateGPSMotorista, registrarChegada, supabase } from '../services/supabase';
+import { iniciarGPSBackground, pararGPSBackground, posicaoAtual } from '../services/gps';
 
 var { width } = Dimensions.get('window');
 var GOOGLE_API_KEY = 'AIzaSyB47DpEZW4qbU74LxcG1ZD76cYLRlJw88M';
@@ -141,6 +142,7 @@ export default function RotaScreen(props) {
       sub.remove();
       supabase.removeChannel(channel);
       if (locInterval.current) clearInterval(locInterval.current);
+      pararGPSBackground(); // Parar task de background ao sair da tela
     };
   }, []); // eslint-disable-line
 
@@ -154,33 +156,34 @@ export default function RotaScreen(props) {
   }, [abaAtiva, stops]);
 
   async function iniciarGPS() {
-    var perm = await Location.requestForegroundPermissionsAsync();
-    if (perm.status !== 'granted') {
-      Alert.alert('GPS necessário', 'Ative a localização para continuar.');
-      return;
-    }
-    var loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-    var pos = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-    setPosAtual(pos);
-    setTrajetoria([pos]);
+    try {
+      // Iniciar GPS background (continua mesmo com tela apagada ou app minimizado)
+      await iniciarGPSBackground(rota.id);
 
-    locInterval.current = setInterval(async function() {
-      try {
-        var newLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        var newPos = { latitude: newLoc.coords.latitude, longitude: newLoc.coords.longitude };
-        setPosAtual(newPos);
-        setTrajetoria(function(prev) { return [...prev, newPos]; });
-        if (online) {
-          await updateGPSMotorista(rota.id, newPos.latitude, newPos.longitude);
-          await supabase.from('route_tracking').insert({
-            route_id: rota.id,
-            lat: newPos.latitude,
-            lng: newPos.longitude,
-            recorded_at: new Date().toISOString(),
-          }).catch(function() {});
-        }
-      } catch (e) {}
-    }, 30000);
+      // Capturar posição inicial para exibir no mapa
+      var coords = await posicaoAtual();
+      if (coords) {
+        var pos = { latitude: coords.latitude, longitude: coords.longitude };
+        setPosAtual(pos);
+        setTrajetoria([pos]);
+      }
+
+      // Atualizar posição no mapa a cada 10s enquanto a tela estiver visível
+      // (a gravação no banco é feita pela background task)
+      locInterval.current = setInterval(async function() {
+        try {
+          var coords = await posicaoAtual();
+          if (coords) {
+            var newPos = { latitude: coords.latitude, longitude: coords.longitude };
+            setPosAtual(newPos);
+            setTrajetoria(function(prev) { return [...prev, newPos]; });
+          }
+        } catch (e) {}
+      }, 10000);
+
+    } catch (e) {
+      Alert.alert('GPS necessário', e.message || 'Ative a localização para continuar.');
+    }
   }
 
   function monitorarConexao() {
