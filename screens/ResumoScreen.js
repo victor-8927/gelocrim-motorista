@@ -62,13 +62,24 @@ export default function ResumoScreen(props) {
       if (!resStops.error && resStops.data) setStops(resStops.data);
 
       // Busca stop_items para calcular sacos entregues e retornados
-      var resItems = await supabase.from('stop_items').select('qty_entregue, qty_devolvida, order_type').in(
-        'stop_id', (resStops.data || []).map(function(s) { return s.stop_id; })
-      );
-      if (!resItems.error && resItems.data) {
-        var sacosEnt = (resItems.data || []).reduce(function(s, i) { return s + (parseFloat(i.qty_entregue) || 0); }, 0);
-        var sacosRet = (resItems.data || []).reduce(function(s, i) { return s + (parseFloat(i.qty_devolvida) || 0); }, 0);
+      var stopIds = (resStops.data || []).map(function(s) { return s.stop_id; }).filter(Boolean);
+      var resItems = stopIds.length > 0
+        ? await supabase.from('stop_items').select('qty_entregue, qty_devolvida, destino_retorno, order_type').in('stop_id', stopIds)
+        : { data: [], error: null };
+
+      if (!resItems.error && resItems.data && resItems.data.length > 0) {
+        // Dados reais de stop_items
+        var sacosEnt = resItems.data.reduce(function(s, i) { return s + (parseFloat(i.qty_entregue) || 0); }, 0);
+        var sacosRet = resItems.data.reduce(function(s, i) { return s + (parseFloat(i.qty_devolvida) || 0); }, 0);
         setCargaResumida(function(prev) { return Object.assign({}, prev, { entregue: sacosEnt, retorno: sacosRet }); });
+      } else {
+        // Fallback: estima sacos por weight_kg (1 saco = 15kg padrão GELOCRIM)
+        var PESO_SACO = 15;
+        var stopsOk   = (resStops.data || []).filter(function(s) { return s.status === 'delivered'; });
+        var stopsFail = (resStops.data || []).filter(function(s) { return s.status === 'failed' || s.status === 'rescheduled'; });
+        var sacosEntFb = stopsOk.reduce(function(acc, p) { return acc + Math.round((parseFloat(p.weight_kg) || 0) / PESO_SACO); }, 0);
+        var sacosRetFb = stopsFail.reduce(function(acc, p) { return acc + Math.round((parseFloat(p.weight_kg) || 0) / PESO_SACO); }, 0);
+        setCargaResumida(function(prev) { return Object.assign({}, prev, { entregue: sacosEntFb, retorno: sacosRetFb }); });
       }
       // Valor entregue — somar dos stops com status delivered
       var stopsEntregues = (resStops.data || []).filter(function(s) { return s.status === 'delivered'; });
