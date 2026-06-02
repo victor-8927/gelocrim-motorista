@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "GELOCRIM",
+    "slug": "gelocrim-motorista",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "backgroundColor": "#000d1a"
+    },
+    "android": {
+      "package": "com.gelocrim.motorista",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#000d1a"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB47DpEZW4qbU74LxcG1ZD76cYLRlJw88M"
+        }
+      }
+    },
+    "plugins": [
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "MAPBOX_TOKEN_AQUI"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O app precisa da câmera para fotografar as entregas."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O app precisa da localização para registrar o GPS das entregas."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O app precisa acessar as fotos para anexar comprovantes."
+        }
+      ]
+    ]
+  }
+}
+
