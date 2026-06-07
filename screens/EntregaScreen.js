@@ -133,7 +133,7 @@ export default function EntregaScreen(props) {
         if (!resC.error) setCliente(resC.data);
       }
       // Todos os pedidos do cliente roteirizados
-      var resP = await supabase.from('orders').select('id, external_id, order_type, invoice_number, payment_description, total_value, weight_kg, order_items(*)').eq('codparc', stop.codparc).eq('status', 'routed').order('order_type');
+      var resP = await supabase.from('orders').select('id, external_id, order_type, invoice_number, payment_description, total_value, weight_kg, order_items(*)').eq('codparc', stop.codparc).in('status', ['routed', 'pending']).order('order_type');
       if (!resP.error && resP.data) {
         setPedidos(resP.data);
         // Inicializar quantidades
