@@ -232,15 +232,16 @@ export default function EntregaScreen(props) {
       var { data } = supabase.storage.from('stops').getPublicUrl(path);
       return data.publicUrl;
     } catch(e) {
-      console.log('Erro upload foto:', e.message);
+      console.warn('[UPLOAD FOTO] Erro:', e.message, '| URI:', uri);
+      // Retorna null mas não bloqueia a entrega
       return null;
     }
   }
 
   async function finalizarEntrega() {
     // CORREÇÃO 2: validação de fotos obrigatórias
-    if (!fotos.nf)      { Alert.alert('Foto obrigatória', 'Tire a foto da Nota Fiscal.'); return; }
-    if (!fotos.canhoto) { Alert.alert('Foto obrigatória', 'Tire a foto do Canhoto.'); return; }
+    if (!fotos.nf) { Alert.alert('Foto obrigatória', 'Tire a foto da Nota Fiscal antes de confirmar.'); return; }
+    // Canhoto é opcional — recomendado mas não bloqueia
     setLoading(true);
     try {
       var agora = new Date();
@@ -285,10 +286,13 @@ export default function EntregaScreen(props) {
         });
       });
       if (stopItemsRows.length > 0) {
-        await supabase.from('stop_items').upsert(stopItemsRows, { onConflict: 'stop_id,order_item_id', ignoreDuplicates: false });
+        // Delete + insert é mais robusto que upsert com constraint parcial
+        await supabase.from('stop_items').delete().eq('stop_id', stop.stop_id);
+        var { error: siError } = await supabase.from('stop_items').insert(stopItemsRows);
+        if (siError) throw new Error('Erro ao salvar sacos: ' + siError.message);
       }
       Alert.alert('✅ Entrega confirmada!', stop.recipient_name + (tempoMin ? '\nTempo: ' + tempoMin + ' min' : ''), [{ text: 'OK', onPress: function() { navigation.goBack(); } }]);
-    } catch (e) { Alert.alert('Erro', e.message); }
+    } catch (e) { Alert.alert('Erro ao confirmar entrega', e.message); }
     finally { setLoading(false); }
   }
 
